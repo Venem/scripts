@@ -1,0 +1,25 @@
+#!/bin/sh
+
+mkdir -p "$XDG_CACHE_HOME"/moth
+
+# Simple script to download today's math pdf file from CorbettMaths
+# Stores pdf in a temporary file in $XDG_CACHE_HOME/moth
+
+# Type (either "gcse" "primary" "further-maths" "gcse1" "core1")
+# ALSO: "primary" uses a different website. Script may require further editing
+type=gcse
+
+# Difficulty
+# if "gcse": either "Numeracy" "Foundation" "Foundation Plus" "Higher" "Higher Plus"
+# if "further-maths": "Further Maths"
+# if "gcse1": either "Numeracy" "Foundation" "Higher"
+# if "core": either "Core1"
+difficulty="Higher"
+
+url="$(curl "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -E "http.*"$(date +"%B-%d" | tr 'A-Z' 'a-z' | sed 's/-0/-/g')"|"$(date +"%b-%d" | tr 'A-Z' 'a-z' | sed 's/-0/-/g')"|"$(date +"%B-%d" | sed 's/-0/-/g')"|"$(date +"%b-%d" | sed 's/-0/-/g')"" | grep "$difficulty" | sed 's/ /\n/g' | grep "href" | sed -e 's/href="// ; s/".*$//' | head -n1)" >/dev/null 2>&1
+
+wget "$url" -O "$XDG_CACHE_HOME"/moth/tmp.pdf >/dev/null 2>&1
+
+zathura "$XDG_CACHE_HOME"/moth/tmp.pdf
+
+rm "$XDG_CACHE_HOME"/moth/tmp.pdf

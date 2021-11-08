@@ -1,0 +1,28 @@
+#!/bin/sh
+
+for length; do true; done
+
+err() { echo "Usage:
+	randompass [OPTIONS] length
+Options:
+	-p: print password to stdout
+	-e: easy mode (only Alphanumeric characters)" && exit 1 ;}
+
+while getopts "eph" o; do case "${o}" in
+	e) password="$(</dev/urandom tr -dc 'A-Za-z0-9' | head -c $length && echo)" ;;
+	p) printPass="1" ;;
+	h) err ;;
+	*) err ;;
+esac done
+
+[ -z $password ] && password="$(</dev/urandom tr -dc 'A-Za-z0-9!"#$%&'\''()*+,-./:;<=>?@[\]^_`{|}~' | head -c $length)"
+
+if [ "$printPass" = "1" ]
+then
+	echo $password
+else
+	printf "%s" "$password" | xclip -selection clipboard
+	notify-send " Randomly generated password copied to clipboard!"
+	sleep 10s
+	echo " " | xclip -selection clipboard
+fi

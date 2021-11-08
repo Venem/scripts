@@ -1,0 +1,13 @@
+#!/bin/sh
+
+xdotool key Super+9
+xdotool key Super+b
+
+playerctl -a pause 2>/dev/null
+mpc pause 2>/dev/null
+pamixer --mute 2>/dev/null
+st -e nvim ~/.local/share/main.html &
+sleep 0.1
+st -e lf &
+sleep 0.1
+st &

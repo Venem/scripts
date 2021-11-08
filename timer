@@ -1,0 +1,53 @@
+#!/bin/sh
+
+asktoend() {
+	response=$(printf "No\\nYes" | dmenu -i -p "Stop timer?")
+	[ "$response" = "Yes" ] && rm -f ~/.cache/timer && kill -44 "$(pidof "$STATUSBAR")" && killall "timer"
+	exit
+}
+cat ~/.cache/timer >/dev/null 2>/dev/null && asktoend
+
+err() { echo "Usage:
+	timer [OPTIONS]
+Options:
+	-h: hours
+	-m: minutes
+	-s: seconds" && exit 1 ;}
+
+while getopts "h:m:s:" o; do case "${o}" in
+	h) hours="${OPTARG}" ;;
+	m) minutes="${OPTARG}" ;;
+	s) seconds="${OPTARG}" ;;
+	*) printf "Invalid option: -%s\\n" "$OPTARG" && err ;;
+esac done
+
+[ -z "$hours" ] && [ -z "$minutes" ] && [ -z "$seconds" ] && err
+
+[ -z "$hours" ] && hours=0
+[ -z "$minutes" ] && minutes=0
+[ -z "$seconds" ] && seconds=0
+
+totalSeconds=$((hours*3600+minutes*60+seconds))
+
+i=0
+while [ $i != $totalSeconds ]; do
+	i=$((i+1))
+	[ "$seconds" = "-1" ] && seconds=59 && minutes="$(expr $minutes - 1)"
+	[ "$minutes" = "-1" ] && minutes=59 && hours="$(expr $hours - 1)"
+
+	[ "${#seconds}" = "1" ] && seconds=0$seconds
+	[ "${#minutes}" = "1" ] && minutes=0$minutes
+	[ "${#hours}" = "1" ] && hours=0$hours
+
+	printf "%s:%s:%s\r" "$hours" "$minutes" "$seconds" &
+	echo "⏰ $hours:$minutes:$seconds" > ~/.cache/timer &
+	kill -44 "$(pidof "$STATUSBAR")" &
+	sleep 1
+	seconds="$(expr $seconds - 1)"
+done
+
+rm ~/.cache/timer
+kill -44 "$(pidof "$STATUSBAR")"
+
+paplay /usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga &
+notify-send "⏰ Time's up!"

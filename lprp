@@ -1,0 +1,61 @@
+#!/bin/sh
+
+printers="$(lpstat -p -d | sed -r '$d ; s/printer // ; s/is idle.+//g ; s/.+Waiting.+// ; s/ now printing.+//g ; s/Copying print data.*//g')"
+
+printf "What printer would you like to use?\n"
+
+i=1
+while [ $i != $(($(echo "$printers" | wc -l)+1)) ]
+do
+	echo $i. $(echo "$printers" | awk -v var="$i" 'NR==var')
+	i=$(($i+1))
+done
+
+printf "Select one: " && read printer
+
+[ "$printer" = "q" ] && exit
+[ -z $printer ] && echo "You need to select a printer." && exit
+
+printf "How many copies would you like: " && read copies
+
+# Check if amount of copies is too much
+[ -z $copies ] && copies="1"
+[ $copies -gt "10" ] && echo "Too many copies." && exit
+
+printf "What paper size?\n1. A4\n2. Legal\n3. Letter\nSelect one: " && read size
+#printf "What orientation?\n1. Normal\n2. Landscape (90° counter-clockwise)\n3. Landscape (90° clockwise)\n4. Portrait (180°)\nSelect one: " && read rotation
+printf "What sides?\n1. Single\n2. Duplex (Long Edge)\n3. Duplex (Short Edge)\nSelect one: " && read sides
+
+# Find out which printer was selected
+selPrinter=$(echo "$printers" | awk -v var="$printer" 'NR==var')
+
+# Find out paper size
+case $size in
+	"1") selSize="a4" ;;
+	"2") selSize="legal" ;;
+	"3") selSize="letter" ;;
+	"q") exit ;;
+	*) selSize="a4";;
+esac
+
+# find out orientation
+# case $rotation in
+# 	"1") selRotation="0" ;;
+# 	"2") selRotation="4" ;;
+# 	"3") selRotation="5" ;;
+# 	"4") selRotation="6" ;;
+# 	"q") exit ;;
+# 	*) selRotation="0" ;;
+# esac
+
+# Find out side setup
+case $sides in
+	"1") selSides="one-sided" ;;
+	"2") selSides="two-sided-long-edge" ;;
+	"3") selSides="two-sided-short-edge" ;;
+	"q") exit ;;
+	*) selSides="one-sided" ;;
+esac
+
+# lpr -# $copies -o media=$selSize -o orientation-requested=$selRotation -o sides=$selSides -P $selPrinter "$1"
+lpr -# $copies -o media=$selSize -o sides=$selSides -P $selPrinter "$1"

@@ -1,0 +1,75 @@
+#!/bin/sh
+# This script will make a compressed file with whatever algorithm you tell it to
+# Requires apack, tar, zstd and etc. to be installed
+# for use from command line or lf
+
+cat "$1" >/dev/null 2>&1 || ls "$1" >/dev/null 2>&1 || echo "mkarchive: cannot compress '$1': No such file or directory"
+cat "$1" >/dev/null 2>&1 || ls "$1" >/dev/null 2>&1 || exit
+
+clear
+
+file="$(echo "$1" | awk -F'/' '{print $NF}')"
+
+algorithmHelp() { \
+	printf "====================\nOPTIONS:\n====================\n - Dir capable:\ntbz	tbz2	tgz\ntxz	tZ	tzo\ntlz	t7z	tzst\ntzst	tar	rar\nzip	jar\n - Single file:\nlzma	bz	bz2\ngz	xz	zst\nlha	Z\n"
+}
+
+echo "Compressing file \"$file\""
+
+algorithmHelp
+
+while :; do
+	printf "How would you like to compress? (type h for help): "
+	read -r archive
+	[ "$archive" = "h" ] && algorithmHelp
+	[ "$archive" = "q" ] && exit
+	case "$archive" in
+		# dir algorithms
+		tbz) apack "$file.tbz" "$file" && \
+			exit ;;
+		tbz2) apack "$file.tbz2" "$file" && \
+			exit ;;
+		tgz) apack "$file.tgz" "$file" && \
+			exit ;;
+		txz) apack "$file.txz" "$file" && \
+			exit ;;
+		tZ) apack "$file.tZ" "$file" && \
+			exit ;;
+		tzo) apack "$file.tzo" "$file" && \
+			exit ;;
+		tlz) apack "$file.tlz" "$file" && \
+			exit ;;
+		t7z) apack "$file.t7z" "$file" && \
+			exit ;;
+		tzst) tar -I zstd -cvf "$file.tzst" "$file" && \
+			exit ;;
+		tar) apack "$file.tar" "$file" && \
+			exit ;;
+		rar) apack "$file.rar" "$file" && \
+			exit ;;
+		zip) apack "$file.zip" "$file" && \
+			exit ;;
+		jar) apack "$file.jar" "$file" && \
+			exit ;;
+
+		# single file algorithms
+		lzma) apack "$file.lzma" "$file" && \
+			exit ;;
+		bz) apack "$file.bz" "$file" && \
+			exit ;;
+		bz2) apack "$file.bz2" "$file" && \
+			exit ;;
+		gz) apack "$file.gz" "$file" && \
+			exit ;;
+		xz) apack "$file.xz" "$file" && \
+			exit ;;
+		zst) zstd "$file" -o "$file.zst" && \
+			exit ;;
+		lha) apack "$file.lha" "$file" && \
+			exit ;;
+		Z) apack "$file.Z" "$file" && \
+			exit ;;
+	esac
+done
+
+clear

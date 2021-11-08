@@ -1,0 +1,19 @@
+#!/bin/sh
+
+get() { \
+	curl http://ogden.basic-english.org/wordalph.html | sed -r 's/<.*|-|.*>|\(.*\)|[0-9]*|URL.*|\.| +|\r|:*//g ; 1,25d' | tr '\n\n' ',' | sed -r 's/,+/,/g ; s/\///g ; s/,/\n/g' > ~/.cache/dict
+}
+
+[ ! -f ~/.cache/dict ] && get
+
+while :; do
+	randNum="$((1 + $(tr -dc '1-9' </dev/urandom | head -c 5) % 10))"
+	j=0
+	while [ "$j" -lt "$randNum" ]; do
+		xdotool type "$(shuf <~/.cache/dict | head -n1 | tr '\n' ' ')"
+		j=$((j+1))
+		sleep 0.02
+	done
+	xdotool key KP_Enter
+	sleep 0.2
+done
