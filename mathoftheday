@@ -7,20 +7,37 @@ mkdir -p "$XDG_CACHE_HOME"/moth
 
 # Type (either "gcse" "primary" "further-maths" "gcse1" "core1")
 # ALSO: "primary" uses a different website. Script may require further editing
-type=gcse
+type=$(echo "core1\\ngcse\\ngcse1\\nfurther-maths" | dmenu -p "Pick a type")
 
 # Difficulty
 # if "gcse": either "Numeracy" "Foundation" "Foundation Plus" "Higher" "Higher Plus"
 # if "further-maths": "Further Maths"
 # if "gcse1": either "Numeracy" "Foundation" "Higher"
 # if "core": either "Core1"
-difficulty="Higher"
+if [ $type = "core" ]; then
+	difficulty="Core 1"
+elif [ $type = "gcse" ]; then
+	difficulty=$(echo "Numeracy\\nFoundation\\nFoundation Plus\\nHigher\\nHigher Plus" | dmenu -p "Pick a difficulty")
+elif [ $type = "gcse1" ]; then
+	difficulty=$(echo "Numeracy\\nFoundation\\nHigher" | dmenu -p "Pick a difficulty")
+elif [ $type = "further-maths" ]; then
+	difficulty="Further Maths"
+fi
 
-# url="$(curl "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -E "http.*"$(date +"%B-%d" | tr 'A-Z' 'a-z' | sed 's/-0/-/g')"|"$(date +"%b-%d" | tr 'A-Z' 'a-z' | sed 's/-0/-/g')"|"$(date +"%B-%d" | sed 's/-0/-/g')"|"$(date +"%b-%d" | sed 's/-0/-/g')"" | grep "$difficulty" | sed 's/ /\n/g' | grep "href" | sed -e 's/href="// ; s/".*$//' | head -n1)" >/dev/null 2>&1
 url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -iE -A 3 "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | grep "$difficulty" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
+answer="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -i -A 3 "$(date '+%B')-answers" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
+answerurl="$(curl -s "$answer" | sed 's/   /\n/g' | grep -iE -A 3 "$(date +%d | sed -e 's/^0//g').{3}$(date +%b)" | grep "$difficulty" | sed -E 's/<span class.*$//;s/.*="//g;s/">.*//g' | head -n 1)"
 
-wget "$url" -O "$XDG_CACHE_HOME"/moth/tmp.pdf >/dev/null 2>&1
+filename=$(</dev/urandom tr -dc 'A-Za-z0-9' | head -c 12)
 
-zathura "$XDG_CACHE_HOME"/moth/tmp.pdf
+wget "$url" -O "$XDG_CACHE_HOME"/moth/work.pdf >/dev/null 2>&1
+wget "$answerurl" -O "$XDG_CACHE_HOME"/moth/answer.pdf >/dev/null 2>&1
 
-rm "$XDG_CACHE_HOME"/moth/tmp.pdf
+pdfunite "$XDG_CACHE_HOME"/moth/work.pdf "$XDG_CACHE_HOME"/moth/answer.pdf "$XDG_CACHE_HOME"/moth/$filename.pdf || cp "$XDG_CACHE_HOME"/moth/work.pdf "$XDG_CACHE_HOME"/moth/$filename.pdf
+
+rm "$XDG_CACHE_HOME"/moth/work.pdf
+rm "$XDG_CACHE_HOME"/moth/answer.pdf
+
+zathura "$XDG_CACHE_HOME"/moth/$filename.pdf
+
+rm "$XDG_CACHE_HOME"/moth/$filename.pdf
