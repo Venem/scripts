@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Have you ever been gaming at work and your boss caught you?
+# Well this script will hide all of your windows lol
+
 xdotool key Super+9
 xdotool key Super+b
 

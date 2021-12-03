@@ -24,12 +24,12 @@ elif [ $type = "further-maths" ]; then
 	difficulty="Further Maths"
 fi
 
-url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep "$difficulty" | sed 's/ /\n/g' | grep "href" | sed -e 's/href="// ; s/".*$//' | shuf | head -n1)"
+url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -E "$difficulty[^-P]" | sed 's/ /\n/g' | grep "href" | sed -e 's/href="// ; s/".*$//' | shuf | head -n1)"
 
-echo $url
+filename=$(</dev/urandom tr -dc 'A-Za-z0-9' | head -c 12)
 
-wget "$url" -O "$XDG_CACHE_HOME"/moth/tmp.pdf >/dev/null 2>&1
+wget "$url" -O "$XDG_CACHE_HOME"/moth/$filename.pdf >/dev/null 2>&1
 
-zathura "$XDG_CACHE_HOME"/moth/tmp.pdf
+zathura "$XDG_CACHE_HOME"/moth/$filename.pdf
 
-rm "$XDG_CACHE_HOME"/moth/tmp.pdf
+rm "$XDG_CACHE_HOME"/moth/$filename.pdf
