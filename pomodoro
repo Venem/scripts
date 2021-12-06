@@ -26,6 +26,7 @@ esac done
 [ -z "$breaktime" ] && breaktime=5
 [ -z "$longbreak" ] && longbreak="$(($breaktime*4))"
 
+# TODO: use for loops or something?
 while :; do
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Work - "$work"m"
