@@ -24,9 +24,15 @@ elif [ $type = "further-maths" ]; then
 	difficulty="Further Maths"
 fi
 
-url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -iE -A 3 "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | grep -E "$difficulty[^-P]" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
-answer="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | sed 's/   /\n/g' | grep -i -A 3 "$(date '+%B')-answers" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
-answerurl="$(curl -s "$answer" | sed 's/   /\n/g' | grep -iE -A 3 "$(date +%d | sed -e 's/^0//g').{3}$(date +%b)" | grep "$difficulty[^-P]" | sed -E 's/<span class.*$//;s/.*="//g;s/">.*//g' | head -n 1)"
+url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | sed -E 's/ +/\n/g' | grep "$difficulty" | sed -E 's/.*="//g;s/">.*//g')"
+
+if [ "$type" = "further-maths" ]; then
+	answerurl="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | sed -E 's/ +/\n/g' | grep "Answers" | sed -E 's/.*="//g;s/">.*//g')"
+else
+	answer="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -i "$(date '+%B')-answers" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
+	answerurl="$(curl -s "$answer" | grep -iE "$(date +%d | sed -e 's/^0//g').{3}$(date +%b)" | sed -E 's/ +/\n/g' | grep "$difficulty" | sed -E 's/.*="//g;s/">.*//g')"
+fi
+
 
 filename=$(</dev/urandom tr -dc 'A-Za-z0-9' | head -c 12)
 
