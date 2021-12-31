@@ -1,6 +1,6 @@
 #!/bin/bash
 # have to use bash because dash does not support colours ;(
-# RIP minimalism E
+# RIP minimalism
 # (at least it's not fish)
 
 ifinstalled youtube-dl	|| exit
