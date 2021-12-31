@@ -1,0 +1,267 @@
+#!/bin/bash
+# have to use bash because dash does not support colours ;(
+# RIP minimalism
+# (at least it's not fish)
+
+ifinstalled youtube-dl	|| exit
+ifinstalled ffmpeg	|| exit
+
+# some colours
+rst=$(tput sgr0)
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+yellow=$(tput setaf 3)
+magenta=$(tput setaf 5)
+cyan=$(tput setaf 6)
+grey=$(tput setaf 8)
+
+musicPath="$HOME"/files/mpd/music
+
+quit() {
+	rm -r "$folder"
+	rm -r "$tmp"
+	exit
+}
+
+mkcache() {
+	# make folder to download playlist to
+	echo $green"Creating temporary folder"$rst
+	folder="${XDG_CACHE_HOME:-~/.cache}/"$(</dev/urandom tr -dc 'A-Za-z0-9' | head -c 12)
+	mkdir -p "$folder"
+	sleep 0.1
+	# download playlist
+	echo "Changing directory to $cyan$folder$rst"
+	cd "$folder"
+	echo $grey"---"$rst
+}
+
+download() {
+	# save errors to tmp file
+	tmp=$(mktemp)
+	# $1 not actually script's $1 but function's
+	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$1" 2>$tmp &
+	# get pid of youtube-dl
+	pid=$!
+	trap "kill $pid 2>/dev/null" EXIT
+	sleep 0.1
+
+	echo $green"Starting download"$rst
+	echo "Process ID of youtube-dl is $yellow$pid$rst"
+	while kill -0 "$pid" 2>/dev/null; do
+		count=$(ls $folder | wc -l)
+		echo -ne "Downloading audio $red|$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Downloading audio $red/$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Downloading audio $red—$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Downloading audio $red\\$magenta $count$rst\r"
+		sleep 0.2
+	done
+	[ -s "$tmp" ] && echo $red"Failed to run:$rst" && cat $tmp && quit
+
+	echo $green"Download finished$magenta ($count total)"$rst
+
+	rm $tmp
+	echo $grey"---"$rst
+}
+
+convertaudio() {
+	# save errors to tmp file
+	tmp=$(mktemp)
+	for file in *; do
+		ffmpeg -loglevel error -i "$file" "${file%.*}.mp3" 2>$tmp
+	done &
+	# get pid of ffmpeg
+	pid=$!
+	trap "kill $pid 2>/dev/null" EXIT
+	sleep 0.1
+	echo $green"Converting to mp3"$rst
+	echo "Process ID of ffmpeg is $yellow$pid$rst"
+	while kill -0 "$pid" 2>/dev/null; do
+		count=$(ls $folder | grep mp3 | wc -l)
+		echo -ne "Converting $red|$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Converting $red/$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Converting $red—$magenta $count$rst\r"
+		sleep 0.2
+		echo -ne "Converting $red\\$magenta $count$rst\r"
+		sleep 0.2
+	done
+	[ -s "$tmp" ] && echo $red"Failed to run:$rst" && cat $tmp && quit
+
+	echo $green"Conversion finished$magenta ($count total)"$rst
+	echo $red"Deleting original files"$rst
+
+	echo -n $red
+	find -type f ! -regex ".*\.mp3"
+
+	echo -n $magenta"(y/N): $grey"
+	read -r delete
+	echo -n $rst
+
+	if [ "$delete" = "y" ]; then
+		find -type f ! -regex ".*\.mp3" -delete
+
+		rm $tmp
+		echo $grey"---"$rst
+	else
+		quit
+	fi
+}
+
+renamefiles() {
+	total="$(ls | wc -l)"
+	i=0
+	for file in *; do
+		i=$((i+1))
+		tput ed
+		echo "Filename is: $cyan$file$rst"
+		# clean title with common idiocracies in youtube filenames
+		cleanTitle=$(echo ${file%.*} | sed -E 's/.\[.*\]//g ; s/.{,2}feat.*\.//g ; s/.{5,} -.?//g')
+		tput ed
+		echo "Is $yellow$cleanTitle$rst the correct title? ($i/$total)"
+		tput ed
+		echo -n "$magenta(Y/Custom name): $grey"
+		read -r title
+		echo -n $rst
+		if [ "$title" = "y" ]; then
+			mv "$file" "$cleanTitle.mp3"
+		else
+			mv "$file" "$title.mp3"
+		fi
+		tput cuu 3
+	done
+	tput ed
+	echo $green"Finished renaming"$rst
+	sleep 0.1
+	tput ed
+	echo $green"Listing files"$rst
+	find -type f
+	tput ed
+	echo -n $magenta"Does this look right? (Y/n): $grey"
+	read -r correct
+	echo -n "$rst"
+	[ "$correct" = "n" ] && renameFiles
+
+	echo $grey"---"$rst
+}
+
+getmetadata() {
+	echo -n $magenta"Enter artist name: $grey"
+	read -r artist
+	echo -n $magenta"Enter album name: $grey"
+	read -r album
+	echo -n $magenta"Enter release year: $grey"
+	read -r year
+
+	echo $grey"---"$rst
+}
+
+folders() {
+	if [ -n "$artist" ]; then
+		artistFolder="$musicPath/$(echo $artist | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g")"
+	else
+		artistFolder="$musicPath/other"
+	fi
+
+	echo "Creating artist folder $yellow$artistFolder$rst"
+	mkdir -p $artistFolder
+	sleep 0.1
+
+	albumFolder="$artistFolder/$(echo $album | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g")"
+	echo "Creating artist folder $yellow$albumFolder$rst"
+	mkdir -p $albumFolder
+	sleep 0.1
+
+	echo "Moving files to $yellow$albumFolder$rst"
+	mv -v "$folder"/* "$albumFolder"/
+	sleep 0.1
+
+	echo $green"Removing temporary folder"$rst
+	rm -r "$folder"
+
+	echo $grey"---"$rst
+}
+
+tagfiles() {
+	# save errors to tmp file
+	tmp=$(mktemp)
+
+	echo "Changing directory to $cyan$albumFolder$rst"
+	cd "$albumFolder"
+
+	[ -n "$artist" ] && artistArg="-a $artist"
+	[ -n "$year" ] && yearArg="--recording-date=$year"
+
+	echo $green"Opening web browser"$rst
+	$BROWSER --new-window "https://en.wikipedia.org/wiki/Special:Search?search=$artist+$album&go=Go&ns0=1" >/dev/null 2>&1 &
+	pid=$!
+	trap "kill $pid 2>/dev/null" EXIT
+	echo "Process ID of $BROWSER is $yellow$pid$rst"
+	echo $cyan"This should help you get the track order"$rst
+
+	total="$(ls | wc -l)"
+	echo $yellow"Tagging files"$rst
+	for file in *; do
+		title=${file%.*}
+		tput ed
+		echo -n $magenta"Enter track number for $yellow$title: $grey"
+		read -r track
+		[ -n "$track" ] && trackArg="-n $track -N $total"
+		eyeD3 -Q --remove-all $artistArg $yearArg $trackArg -A "$album" -t "$title" "$file" >/dev/null 2>$tmp
+
+		# clean up name
+		safeName="$(echo "$title" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g")"
+		[ -n "$track" ] && newName="$(printf "%.2d" "$track")-$safeName.mp3"
+		[ -z "$track" ] && newName="$safeName.mp3"
+		mv "$file" "$newName"
+		tput cuu 1
+	done
+
+	tput ed
+	echo $green"Tagging complete"$rst
+
+	[ -s "$tmp" ] && echo $red"Failed to run:$rst" && cat $tmp && quit
+
+	echo $red"Please close $BROWSER"$rst
+	wait $pid
+
+	rm $tmp
+	echo $grey"---"$rst
+}
+
+getcover() {
+	echo $green"Opening web browser"$rst
+	$BROWSER --new-window "https://duckduckgo.com/?t=ffab&q=$artist+$album&iax=images&ia=images&iaf=size%3ALarge" >/dev/null 2>&1 &
+	pid=$!
+	trap "kill $pid 2>/dev/null" EXIT
+	echo "Process ID of $BROWSER is $yellow$pid$rst"
+	echo $cyan"Please find an album cover and copy its link"$rst
+
+	echo -n $magenta"Enter URL: $grey"
+	read -r image
+	image="$(echo $image | sed 's/&f=1&nofb=1//g')"
+	echo $green"Downloading image"$rst
+	wget "$image" >/dev/null 2>&1
+	echo $cyan"Converting to .jpg"$rst
+	images="$(ls | grep -E "\.(jpg|png|jpeg|gif|bmp|webp|xpm)")"
+	convert $images cover.jpg
+	echo $red"Deleting original image"$rst
+	rm "$images"
+
+	echo $red"Please close $BROWSER"$rst
+	wait $pid
+
+	echo $grey"---"$rst
+}
+
+mkcache
+download $1
+convertaudio
+renamefiles
+getmetadata
+folders
+tagfiles
+getcover
