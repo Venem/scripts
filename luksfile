@@ -1,0 +1,42 @@
+#!/bin/sh
+
+[ "$1" = "-m" ] && mount $2 && exit
+[ "$1" = "-u" ] && umount $2 && exit
+
+calcmounts() {
+	[ "$(ls /mnt/secret | wc -l)" = 0 ] && echo "container0" && return
+
+	lastdir="$(ls /mnt/secret | tail -n1 | tr -d '[a-zA-Z]')"
+	newdir=$((lastdir + 1))
+	echo "container$newdir"
+}
+
+if [ -f "$1.inf" ]; then
+	# check for doas
+	doas echo "Using doas" || failed=1
+	[ "$failed" = 1 ] && notify-send " Wrong password" && exit
+
+	loopback="$(awk -F';' '{print $1}' $1.inf)"
+	mntname="$(awk -F';' '{print $2}' $1.inf)"
+	doas umount /mnt/secret/"$mntname"
+	doas cryptsetup close "$mntname"
+	doas losetup --detach "$loopback"
+	[ "$(ls /mnt/secret/"$mntname" | wc -l)" != 0 ] && notify-send " Files are still present in /mnt/secret/"$mntname"" "Will not remove. Please check folder" && exit
+	doas rm -r /mnt/secret/"$mntname"
+	rm "$1.inf"
+	notify-send "✅ Successfully unmounted"
+else
+	# check for doas
+	doas echo "Using doas" || failed=1
+	[ "$failed" = 1 ] && notify-send " Wrong password" && exit
+
+	loopback="$(doas losetup --find)"
+	mntname="$(calcmounts)"
+	echo "$loopback;$mntname" > "$1.inf"
+
+	doas mkdir /mnt/secret/"$mntname"
+	doas losetup "$loopback" "$1"
+	doas cryptsetup open "$loopback" "$mntname"
+	doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname"
+	notify-send "✅ Successfully mounted"
+fi

@@ -42,7 +42,7 @@ download() {
 	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$1" 2>$tmp &
 	# get pid of youtube-dl
 	pid=$!
-	trap "kill $pid 2>/dev/null" EXIT
+	trap "kill '$pid' 2>/dev/null" EXIT
 	sleep 0.1
 
 	echo $green"Starting download"$rst
@@ -74,7 +74,7 @@ convertaudio() {
 	done &
 	# get pid of ffmpeg
 	pid=$!
-	trap "kill $pid 2>/dev/null" EXIT
+	trap "kill '$pid' 2>/dev/null" EXIT
 	sleep 0.1
 	echo $green"Converting to mp3"$rst
 	echo "Process ID of ffmpeg is $yellow$pid$rst"
@@ -198,7 +198,7 @@ tagfiles() {
 	echo $green"Opening web browser"$rst
 	$BROWSER --new-window "https://en.wikipedia.org/wiki/Special:Search?search=$artist+$album&go=Go&ns0=1" >/dev/null 2>&1 &
 	pid=$!
-	trap "kill $pid 2>/dev/null" EXIT
+	trap "kill '$pid' 2>/dev/null" EXIT
 	echo "Process ID of $BROWSER is $yellow$pid$rst"
 	echo $cyan"This should help you get the track order"$rst
 
@@ -236,7 +236,7 @@ getcover() {
 	echo $green"Opening web browser"$rst
 	$BROWSER --new-window "https://duckduckgo.com/?t=ffab&q=$artist+$album&iax=images&ia=images&iaf=size%3ALarge" >/dev/null 2>&1 &
 	pid=$!
-	trap "kill $pid 2>/dev/null" EXIT
+	trap "kill '$pid' 2>/dev/null" EXIT
 	echo "Process ID of $BROWSER is $yellow$pid$rst"
 	echo $cyan"Please find an album cover and copy its link"$rst
 
@@ -247,7 +247,7 @@ getcover() {
 	wget "$image" >/dev/null 2>&1
 	echo $cyan"Converting to .jpg"$rst
 	images="$(ls | grep -E "\.(jpg|png|jpeg|gif|bmp|webp|xpm)")"
-	convert $images cover.jpg
+	convert "$images" cover.jpg
 	echo $red"Deleting original image"$rst
 	rm "$images"
 
