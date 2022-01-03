@@ -1,5 +1,6 @@
 #!/bin/sh
 # This is a CLI frontend for cryptsetup
+# Setup must be manual
 
 [ "$1" = "" ] && exit
 
