@@ -1,12 +1,12 @@
 #!/bin/sh
+# This is a CLI frontend for cryptsetup
 
-[ "$1" = "-m" ] && mount $2 && exit
-[ "$1" = "-u" ] && umount $2 && exit
+[ "$1" = "" ] && exit
 
 calcmounts() {
 	[ "$(ls /mnt/secret | wc -l)" = 0 ] && echo "container0" && return
 
-	lastdir="$(ls /mnt/secret | tail -n1 | tr -d '[a-zA-Z]')"
+	lastdir="$(ls /mnt/secret | tail -n1 | tr -d 'a-zA-Z')"
 	newdir=$((lastdir + 1))
 	echo "container$newdir"
 }
@@ -21,7 +21,7 @@ if [ -f "$1.inf" ]; then
 	doas umount /mnt/secret/"$mntname"
 	doas cryptsetup close "$mntname"
 	doas losetup --detach "$loopback"
-	[ "$(ls /mnt/secret/"$mntname" | wc -l)" != 0 ] && notify-send " Files are still present in /mnt/secret/"$mntname"" "Will not remove. Please check folder" && exit
+	[ "$(ls /mnt/secret/"$mntname" | wc -l)" != 0 ] && notify-send " Files are still present in /mnt/secret/$mntname" "Will not remove. Please check folder" && exit
 	doas rm -r /mnt/secret/"$mntname"
 	rm "$1.inf"
 	notify-send "✅ Successfully unmounted"
@@ -37,6 +37,6 @@ else
 	doas mkdir /mnt/secret/"$mntname"
 	doas losetup "$loopback" "$1"
 	doas cryptsetup open "$loopback" "$mntname"
-	doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname"
+	doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname" -o uid="$(whoami)",gid="$(whoami)"
 	notify-send "✅ Successfully mounted"
 fi
