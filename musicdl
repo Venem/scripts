@@ -39,7 +39,7 @@ download() {
 	# save errors to tmp file
 	tmp=$(mktemp)
 	# $1 not actually script's $1 but function's
-	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$1" 2>$tmp &
+	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$1" 2>>$tmp &
 	# get pid of youtube-dl
 	pid=$!
 	trap "kill '$pid' 2>/dev/null" EXIT
@@ -70,7 +70,7 @@ convertaudio() {
 	# save errors to tmp file
 	tmp=$(mktemp)
 	for file in *; do
-		ffmpeg -loglevel error -i "$file" "${file%.*}.mp3" 2>$tmp
+		ffmpeg -loglevel error -i "$file" "${file%.*}.mp3" 2>>$tmp
 	done &
 	# get pid of ffmpeg
 	pid=$!
@@ -114,19 +114,22 @@ convertaudio() {
 renamefiles() {
 	total="$(ls | wc -l)"
 	i=0
+	echo -n $magenta"Enter a custom regex to remove (sed syntax and begin with ;): $grey"
+	read -r regex
+	echo -n "$rst"
 	for file in *; do
 		i=$((i+1))
 		tput ed
 		echo "Filename is: $cyan$file$rst"
 		# clean title with common idiocracies in youtube filenames
-		cleanTitle=$(echo ${file%.*} | sed -E 's/.\[.*\]//g ; s/.{,2}feat.*\.//g ; s/.{5,} -.?//g')
+		cleanTitle=$(echo ${file%.*} | sed -E 's/.\[.*\]//g ; s/.{0,2}feat.+$//g ; s/.{5,} -.?//g'$regex)
 		tput ed
 		echo "Is $yellow$cleanTitle$rst the correct title? ($i/$total)"
 		tput ed
 		echo -n "$magenta(Y/Custom name): $grey"
 		read -r title
 		echo -n $rst
-		if [ "$title" = "y" ]; then
+		if [ "$title" = "y" ] || [ "$title" = "" ]; then
 			mv "$file" "$cleanTitle.mp3"
 		else
 			mv "$file" "$title.mp3"
@@ -143,7 +146,7 @@ renamefiles() {
 	echo -n $magenta"Does this look right? (Y/n): $grey"
 	read -r correct
 	echo -n "$rst"
-	[ "$correct" = "n" ] && renameFiles
+	[ "$correct" = "n" ] && renamefiles
 
 	echo $grey"---"$rst
 }
@@ -176,7 +179,7 @@ folders() {
 	sleep 0.1
 
 	echo "Moving files to $yellow$albumFolder$rst"
-	mv -v "$folder"/* "$albumFolder"/
+	mv "$folder"/* "$albumFolder"/
 	sleep 0.1
 
 	echo $green"Removing temporary folder"$rst
@@ -209,8 +212,8 @@ tagfiles() {
 		tput ed
 		echo -n $magenta"Enter track number for $yellow$title: $grey"
 		read -r track
-		[ -n "$track" ] && trackArg="-n $track -N $total"
-		eyeD3 -Q --remove-all $artistArg $yearArg $trackArg -A "$album" -t "$title" "$file" >/dev/null 2>$tmp
+		[ -n "$track" ] && trackArg="-n $track" && totTracks="-N $total"
+		eyeD3 -Q --remove-all "$artistArg" "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp
 
 		# clean up name
 		safeName="$(echo "$title" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g")"

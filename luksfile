@@ -13,10 +13,6 @@ calcmounts() {
 }
 
 if [ -f "$1.inf" ]; then
-	# check for doas
-	doas echo "Using doas" || failed=1
-	[ "$failed" = 1 ] && notify-send " Wrong password" && exit
-
 	loopback="$(awk -F';' '{print $1}' $1.inf)"
 	mntname="$(awk -F';' '{print $2}' $1.inf)"
 	doas umount /mnt/secret/"$mntname"
@@ -27,10 +23,6 @@ if [ -f "$1.inf" ]; then
 	rm "$1.inf"
 	notify-send "✅ Successfully unmounted"
 else
-	# check for doas
-	doas echo "Using doas" || failed=1
-	[ "$failed" = 1 ] && notify-send " Wrong password" && exit
-
 	loopback="$(doas losetup --find)"
 	mntname="$(calcmounts)"
 	echo "$loopback;$mntname" > "$1.inf"
@@ -38,6 +30,7 @@ else
 	doas mkdir /mnt/secret/"$mntname"
 	doas losetup "$loopback" "$1"
 	doas cryptsetup open "$loopback" "$mntname"
-	doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname" -o uid="$(whoami)",gid="$(whoami)"
+	# stupid fix to get ext4 and fat fs working
+	doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname" -o uid="$(whoami)",gid="$(whoami)" || doas mount /dev/mapper/"$mntname" /mnt/secret/"$mntname"
 	notify-send "✅ Successfully mounted"
 fi

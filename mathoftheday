@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# requires htmlq
+
 mkdir -p "$XDG_CACHE_HOME"/moth
 
 # Simple script to download today's math pdf file from CorbettMaths
@@ -24,13 +26,15 @@ elif [ $type = "further-maths" ]; then
 	difficulty="Further Maths"
 fi
 
-url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | sed -E 's/ +/\n/g' | grep "$difficulty" | sed -E 's/.*="//g;s/">.*//g')"
+url="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | htmlq -a "href" "*" | grep -i "$difficulty" | head -n1)"
 
+# answers for core1 will NOT work as they do not exist
+# also gcse1 since it unites answers for all tiers into one pdf
 if [ "$type" = "further-maths" ]; then
-	answerurl="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | sed -E 's/ +/\n/g' | grep "Answers" | sed -E 's/.*="//g;s/">.*//g')"
+	answerurl="$(curl -s "https://corbettmaths.com/5-a-day/further-maths/" | grep -iE "$(date +%d | sed -E 's/^0//g').{3}$(date +%B)" | htmlq -a href "*" | grep -i "ans")"
 else
-	answer="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -i "$(date '+%B')-answers" | sed -E 's/.*="//g;s/">.*//g' | head -n 1)"
-	answerurl="$(curl -s "$answer" | grep -iE "$(date +%d | sed -e 's/^0//g').{3}$(date +%b)" | sed -E 's/ +/\n/g' | grep "$difficulty" | sed -E 's/.*="//g;s/">.*//g')"
+	answerpage="$(curl -s "https://corbettmaths.com/5-a-day/$type/" | grep -i "$(date '+%B')-answers" | htmlq -a "href" "*" | head -n1)"
+	answerurl="$(curl -s "$answerpage" | grep -iE "$(date +%d | sed -e 's/^0//g').{3}$(date +%b)" | htmlq -a href "*" | grep -i "$difficulty" | head -n1)"
 fi
 
 
