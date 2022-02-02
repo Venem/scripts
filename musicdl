@@ -69,17 +69,23 @@ download() {
 convertaudio() {
 	# save errors to tmp file
 	tmp=$(mktemp)
+
+	echo -n $magenta"Enter file type: $grey"
+	read -r ftype
+
+	[ -z "$ftype" ] && ftype=ogg
+
 	for file in *; do
-		ffmpeg -loglevel error -i "$file" "${file%.*}.mp3" 2>>$tmp
+		ffmpeg -loglevel error -i "$file" "${file%.*}.$ftype" 2>>$tmp
 	done &
 	# get pid of ffmpeg
 	pid=$!
 	trap "kill '$pid' 2>/dev/null" EXIT
 	sleep 0.1
-	echo $green"Converting to mp3"$rst
+	echo $green"Converting to $ftype"$rst
 	echo "Process ID of ffmpeg is $yellow$pid$rst"
 	while kill -0 "$pid" 2>/dev/null; do
-		count=$(ls $folder | grep mp3 | wc -l)
+		count=$(ls $folder | grep "$ftype" | wc -l)
 		echo -ne "Converting $red|$magenta $count$rst\r"
 		sleep 0.2
 		echo -ne "Converting $red/$magenta $count$rst\r"
@@ -95,14 +101,14 @@ convertaudio() {
 	echo $red"Deleting original files"$rst
 
 	echo -n $red
-	find -type f ! -regex ".*\.mp3"
+	find -type f ! -regex ".*\.$ftype"
 
 	echo -n $magenta"(y/N): $grey"
 	read -r delete
 	echo -n $rst
 
 	if [ "$delete" = "y" ]; then
-		find -type f ! -regex ".*\.mp3" -delete
+		find -type f ! -regex ".*\.$ftype" -delete
 
 		rm $tmp
 		echo $grey"---"$rst
@@ -130,9 +136,9 @@ renamefiles() {
 		read -r title
 		echo -n $rst
 		if [ "$title" = "y" ] || [ "$title" = "" ]; then
-			mv "$file" "$cleanTitle.mp3"
+			mv "$file" "$cleanTitle.$ftype"
 		else
-			mv "$file" "$title.mp3"
+			mv "$file" "$title.$ftype"
 		fi
 		tput cuu 3
 	done
@@ -156,8 +162,6 @@ getmetadata() {
 	read -r artist
 	echo -n $magenta"Enter album name: $grey"
 	read -r album
-	echo -n $magenta"Enter release year: $grey"
-	read -r year
 
 	echo $grey"---"$rst
 }
@@ -195,15 +199,18 @@ tagfiles() {
 	echo "Changing directory to $cyan$albumFolder$rst"
 	cd "$albumFolder"
 
-	[ -n "$artist" ] && artistArg="-a $artist"
-	[ -n "$year" ] && yearArg="--recording-date=$year"
-
 	echo $green"Opening web browser"$rst
 	$BROWSER --new-window "https://en.wikipedia.org/wiki/Special:Search?search=$artist+$album&go=Go&ns0=1" >/dev/null 2>&1 &
 	pid=$!
 	trap "kill '$pid' 2>/dev/null" EXIT
 	echo "Process ID of $BROWSER is $yellow$pid$rst"
-	echo $cyan"This should help you get the track order"$rst
+	echo $cyan"This should help you get the track order and year"$rst
+
+	echo -n $magenta"Enter release year: $grey"
+	read -r year
+
+	[ -n "$artist" ] && artistArg="-a $artist"
+	[ -n "$year" ] && yearArg="--recording-date=$year"
 
 	total="$(ls | wc -l)"
 	echo $yellow"Tagging files"$rst
@@ -213,12 +220,28 @@ tagfiles() {
 		echo -n $magenta"Enter track number for $yellow$title: $grey"
 		read -r track
 		[ -n "$track" ] && trackArg="-n $track" && totTracks="-N $total"
-		eyeD3 -Q --remove-all "$artistArg" "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp
+
+		case "$ftype" in
+			mp3) eyeD3 -Q --remove-all "$artistArg" "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp ;;
+			ogg) echo "Title=$title
+Artist=$artist
+Album=$album
+Track=$track
+Total=$total
+Date=$year" | vorbiscomment -w "$file" >/dev/null 2>>$tmp ;;
+			opus) echo "Title=$title
+Artist=$artist
+Album=$album
+Track=$track
+Total=$total
+Date=$year" | opustags -i -S "$file" >/dev/null 2>>$tmp ;;
+			*) echo "File type unsupported" >>$tmp ;;
+		esac
 
 		# clean up name
 		safeName="$(echo "$title" | iconv -cf UTF-8 -t ASCII//TRANSLIT | tr -d '[:punct:]' | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed "s/-\+/-/g;s/\(^-\|-\$\)//g")"
-		[ -n "$track" ] && newName="$(printf "%.2d" "$track")-$safeName.mp3"
-		[ -z "$track" ] && newName="$safeName.mp3"
+		[ -n "$track" ] && newName="$(printf "%.2d" "$track")-$safeName.$ftype"
+		[ -z "$track" ] && newName="$safeName.$ftype"
 		mv "$file" "$newName"
 		tput cuu 1
 	done
