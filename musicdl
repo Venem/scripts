@@ -39,7 +39,7 @@ download() {
 	# save errors to tmp file
 	tmp=$(mktemp)
 	# $1 not actually script's $1 but function's
-	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$1" 2>>$tmp &
+	youtube-dl -q --add-metadata -i -x -f bestaudio/best "$@" 2>>$tmp &
 	# get pid of youtube-dl
 	pid=$!
 	trap "kill '$pid' 2>/dev/null" EXIT
@@ -128,7 +128,7 @@ renamefiles() {
 		tput ed
 		echo "Filename is: $cyan$file$rst"
 		# clean title with common idiocracies in youtube filenames
-		cleanTitle=$(echo ${file%.*} | sed -E 's/.\[.*\]//g ; s/.{0,2}feat.+$//g ; s/.{5,} -.?//g'$regex)
+		cleanTitle=$(echo ${file%.*} | sed -E "s/’/'/g;s/.\[.*\]//g ; s/.(|\(|\[|\{)(ft\.|feat|Orig|orig|offi|Offi).+$//g ; s/.+ - ?//g"$regex)
 		tput ed
 		echo "Is $yellow$cleanTitle$rst the correct title? ($i/$total)"
 		tput ed
@@ -209,7 +209,7 @@ tagfiles() {
 	echo -n $magenta"Enter release year: $grey"
 	read -r year
 
-	[ -n "$artist" ] && artistArg="-a $artist"
+	[ -n "$artist" ] && artistArg="-a=$artist --album-artist=$artist"
 	[ -n "$year" ] && yearArg="--recording-date=$year"
 
 	total="$(ls | wc -l)"
@@ -222,7 +222,7 @@ tagfiles() {
 		[ -n "$track" ] && trackArg="-n $track" && totTracks="-N $total"
 
 		case "$ftype" in
-			mp3) eyeD3 -Q --remove-all "$artistArg" "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp ;;
+			mp3) eyeD3 -Q --remove-all $artistArg "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp ;;
 			ogg) echo "Title=$title
 Artist=$artist
 Album=$album
@@ -284,7 +284,7 @@ getcover() {
 }
 
 mkcache
-download $1
+download $@
 convertaudio
 renamefiles
 getmetadata
