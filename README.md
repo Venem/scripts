@@ -1,2 +1,2 @@
 # scripts
-some of my personal scripts lol shell script go brrr
+Some of my personal shell scripts
