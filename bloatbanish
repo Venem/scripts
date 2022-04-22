@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# some colours
+rst=$(tput sgr0)
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+yellow=$(tput setaf 3)
+magenta=$(tput setaf 5)
+cyan=$(tput setaf 6)
+grey=$(tput setaf 8)
+
+packs="$(pacman -Qeq)"
+
+echo $cyan"This script helps you clean up your system\n"$green"You will be prompted for each package"$rst
+
+for i in $packs; do
+	printf $red"Remove: $magenta$i$rst$red?$grey (y/N): "
+	read -r answer
+	[ "$answer" = "y" ] && remove="$remove $i"
+	[ "$answer" = "q" ] && exit
+done
+
+echo "$(echo $remove | tr ' ' '\n')"
+printf $cyan"Does this look right?$grey (y/N): "
+read -r correct
+[ "$correct" = "y" ] && doas pacman -Rns $remove

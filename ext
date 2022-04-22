@@ -29,7 +29,7 @@ if [ -f "$archive" ] ; then
 		*.tar.bz2|*.tbz2) tar xjfv "$archive" ;;
 		*.tar.xz) tar xfv "$archive" ;;
 		*.tar.gz|*.tgz) tar xzfv "$archive" ;;
-		*.tar.zst) tar -I zstd -xf "$archive" ;;
+		*.tar.zst|*.tzst) tar -I zstd -xf "$archive" ;;
 		*.jar) exInFolder && jar xfv "$archive" ;;
 		*.lzma) unlzma "$archive" ;;
 		*.lz4) unlz4 "$archive" ;;

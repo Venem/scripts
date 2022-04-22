@@ -160,6 +160,9 @@ renamefiles() {
 getmetadata() {
 	echo -n $magenta"Enter artist name: $grey"
 	read -r artist
+	# echo -n $magenta"Enter band name: $grey"
+	# read -r band
+	band=$artist
 	echo -n $magenta"Enter album name: $grey"
 	read -r album
 
@@ -209,7 +212,8 @@ tagfiles() {
 	echo -n $magenta"Enter release year: $grey"
 	read -r year
 
-	[ -n "$artist" ] && artistArg="-a=$artist --album-artist=$artist"
+	[ -n "$artist" ] && artistArg="-a=$artist"
+	[ -n "$band" ] && bandArg="-b=$artist"
 	[ -n "$year" ] && yearArg="--recording-date=$year"
 
 	total="$(ls | wc -l)"
@@ -220,9 +224,8 @@ tagfiles() {
 		echo -n $magenta"Enter track number for $yellow$title: $grey"
 		read -r track
 		[ -n "$track" ] && trackArg="-n $track" && totTracks="-N $total"
-
 		case "$ftype" in
-			mp3) eyeD3 -Q --remove-all $artistArg "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp ;;
+			mp3) eyeD3 -Q --remove-all "$artistArg" "$bandArg" "$yearArg" "$trackArg" "$totTracks" -A "$album" -t "$title" ./"$file" >/dev/null 2>>$tmp ;;
 			ogg) echo "Title=$title
 Artist=$artist
 Album=$album

@@ -14,7 +14,7 @@ totp="$(echo $3 | grep -E -o "(^|[a-zA-Z]| )+[0-9]{6}([a-zA-Z]| |$)+")"
 ## save contents of clipboard
 #oldclip="$(xclip -out -selection clipboard)"
 # copy totp to clipboard
-echo $totp | xclip -selection clipboard
+printf "$totp" | xclip -selection clipboard
 notify-send " TOTP Notification Watcher" "$totp copied to clipboard"
 
 ## restore clipboard contents
