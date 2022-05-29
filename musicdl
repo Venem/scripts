@@ -117,6 +117,21 @@ convertaudio() {
 	fi
 }
 
+# used to aid beet in figuring out album
+generaltag() {
+	case "$ftype" in
+		mp3) eyeD3 -Q --remove-all -b "$artist" -A "$album" * >/dev/null 2>>$tmp ;;
+			ogg) echo "Title=$title
+Artist=$artist
+Album=$album" | vorbiscomment -w * >/dev/null 2>>$tmp ;;
+			opus) echo "Title=$title
+Artist=$artist
+Album=$album" | opustags -i -S * >/dev/null 2>>$tmp ;;
+			*) echo "File type unsupported" >>$tmp ;;
+		esac
+}
+
+
 renamefiles() {
 	total="$(ls | wc -l)"
 	i=0
@@ -247,6 +262,7 @@ Date=$year" | opustags -i -S "$file" >/dev/null 2>>$tmp ;;
 		[ -z "$track" ] && newName="$safeName.$ftype"
 		mv "$file" "$newName"
 		tput cuu 1
+		unset track
 	done
 
 	tput ed
@@ -286,11 +302,23 @@ getcover() {
 	echo $grey"---"$rst
 }
 
+askifmanual() {
+	echo -n $magenta"Did beets succeed in tagging files?\n$grey(It shouldn't have modified anything for manual tagging to work.\nIn case it has, quit and rerun this script)$magenta (Y/n) $grey"
+	read -r beetsworked
+	if [ "$beetsworked" = "y" ]; then
+		exit
+	else
+		renamefiles
+		folders
+		tagfiles
+		getcover
+	fi
+}
+
 mkcache
 download $@
 convertaudio
-renamefiles
 getmetadata
-folders
-tagfiles
-getcover
+generaltag
+beet import .
+askifmanual
