@@ -1,11 +1,14 @@
 #!/bin/sh
 
+sbblock=47
+
 asktoend() {
-	response=$(printf "No\\nYes" | dmenu -i -p "Stop timer?")
-	[ "$response" = "Yes" ] && rm -f ~/.cache/pomodoro && kill -47 "$(pidof $STATUSBAR)" && killall "pomodoro"
+	response=$(printf "No\\nYes" | dmenu -c -i -l 2 -p "Stop timer?")
+	[ "$response" = "Yes" ] && rm -f ~/.cache/pomodoro && kill -$sbblock "$(pidof $STATUSBAR)" && killall "pomodoro"
 	exit
 }
-cat ~/.cache/pomodoro >/dev/null 2>/dev/null && asktoend
+
+[ -f "${XDG_CACHE_HOME-~/.cache}/pomodoro" ] && asktoend
 
 err() { echo "Usage:
 	pomodoro [OPTIONS]
@@ -31,56 +34,56 @@ while :; do
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Work - "$work"m"
 	echo "🍅 Work - "$work"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$work"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Break - "$breaktime"m"
 	echo "🍅 Break - "$breaktime"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$breaktime"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Work - "$work"m"
 	echo "🍅 Work - $work m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$work"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Break - "$breaktime"m"
 	echo "🍅 Break - "$breaktime"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$breaktime"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Work - "$work"m"
 	echo "🍅 Work - "$work"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$work"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Break - "$breaktime"m"
 	echo "🍅 Break - "$breaktime"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$breaktime"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "🍅 Work - "$work"m"
 	echo "🍅 Work - "$work"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$work"m
 
 	paplay /usr/share/sounds/freedesktop/stereo/complete.oga &
 	notify-send "😌 Long Break - "$longbreak"m"
 	echo "😌 Long Break - "$longbreak"m" > ~/.cache/pomodoro
-	kill -47 "$(pidof $STATUSBAR)"
+	kill -$sbblock "$(pidof $STATUSBAR)"
 
 	sleep "$longbreak"m
 done

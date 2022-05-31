@@ -70,7 +70,7 @@ convertaudio() {
 	# save errors to tmp file
 	tmp=$(mktemp)
 
-	echo -n $magenta"Enter file type: $grey"
+	echo -n $magenta"Enter file type (mp3/ogg/opus): $grey"
 	read -r ftype
 
 	[ -z "$ftype" ] && ftype=ogg
@@ -119,6 +119,14 @@ convertaudio() {
 
 # used to aid beet in figuring out album
 generaltag() {
+	# rudimentary filename cleanup
+	i=0
+	for file in *; do
+		i=$((i+1))
+		cleanTitle=$(echo ${file%.*} | sed -E "s/’/'/g;s/.\[.*\]//g")
+		mv "$file" "$cleanTitle.$ftype"
+	done
+
 	case "$ftype" in
 		mp3) eyeD3 -Q --remove-all -b "$artist" -A "$album" * >/dev/null 2>>$tmp ;;
 			ogg) echo "Title=$title
@@ -303,22 +311,39 @@ getcover() {
 }
 
 askifmanual() {
-	echo -n $magenta"Did beets succeed in tagging files?\n$grey(It shouldn't have modified anything for manual tagging to work.\nIn case it has, quit and rerun this script)$magenta (Y/n) $grey"
+	echo -n $magenta"Did beets succeed in tagging files?
+$grey(It shouldn't have modified anything for manual tagging to work.
+In case it has, quit and rerun this script)$magenta (Y/n) $grey"
 	read -r beetsworked
-	if [ "$beetsworked" = "y" ]; then
-		exit
-	else
+	if [ "$beetsworked" = "n" ]; then
 		renamefiles
 		folders
 		tagfiles
 		getcover
+	else
+		echo $green"Removing temporary folder"$rst
+		rm -r "$folder"
+		exit
 	fi
 }
+
+echo -n $magenta"Automatic tag? (requires beets to be installed) (Y/n) $grey"
+read -r auto
 
 mkcache
 download $@
 convertaudio
 getmetadata
-generaltag
-beet import .
-askifmanual
+
+if [ "$auto" = "n" ]; then
+	renamefiles
+	folders
+	tagfiles
+	getcover
+else
+	ifinstalled beets || exit
+	generaltag
+	echo -n $green"Opening beets"$rst
+	beet import .
+	askifmanual
+fi

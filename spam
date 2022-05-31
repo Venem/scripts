@@ -1,7 +1,7 @@
 #!/bin/sh
 
 get() { \
-	curl http://ogden.basic-english.org/wordalph.html | sed -r 's/<.*|-|.*>|\(.*\)|[0-9]*|URL.*|\.| +|\r|:*//g ; 1,25d' | tr '\n\n' ',' | sed -r 's/,+/,/g ; s/\///g ; s/,/\n/g' > ~/.cache/dict
+	curl http://ogden.basic-english.org/wordalph.html | sed -r 's/<.*|-|.*>|\(.*\)|[0-9]*|URL.*|\.| +|\r|:*//g ; 1,25d' | tr '\n\n' ',' | sed -r 's/,+/,/g ; s/\///g ; s/,/\n/g' > ${XDG_CACHE_HOME-~/.cache}/dict
 }
 
 [ ! -f ~/.cache/dict ] && get
